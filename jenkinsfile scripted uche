@@ -1,0 +1,36 @@
+node{
+   def mavenHome = tool name: 'mavin3.9.1' 
+ stage('1-CodeClone'){
+git "https://github.com/ucherichy23/tesla-app"
+}
+stage('2-MavenBuild'){
+   sh "${mavenHome}/bin/mvn package"
+ }
+ stage('3codeQuality'){
+   sh "${mavenHome}/bin/mvn sonar:sonar"
+ }
+ stage('4UploadArtifacts'){
+   sh "${mavenHome}/bin/mvn deploy"
+ }
+  stage('5deploy2UAT'){
+   deploy adapters: [tomcat9(credentialsId: 'tomcat-credentials1', path: '', url: 'http://54.236.61.23:8988/')], contextPath: null, war: 'target/*war'
+}
+stage('6Manualapproval'){
+    sh "echo 'ready for review' "
+    timeout(time:5, unit:'HOURS') {
+    input message: 'Application ready for deployment, Please review and approve'
+      }
+ }
+ stage('5deploy2prod'){
+  deploy adapters: [tomcat9(credentialsId: 'tomcat-credentials1', path: '', url: 'http://54.236.61.23:8988/')], contextPath: null, war: 'target/*war'
+   }
+}
+stage('8emailNotify'){
+    emailext body: '''Hello team,
+
+Build is done.
+
+uchechiA''', recipientProviders: [contributor(), developers(), upstreamDevelopers()], subject: 'build status', to: 'uchejennyagbara@gmail.com'
+    }
+
+  
